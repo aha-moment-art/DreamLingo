@@ -22,6 +22,7 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const musicRef = useRef<HTMLAudioElement>(null);
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeAfterTrackChange = useRef(false);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -69,18 +70,22 @@ export default function Home() {
     if (audio.paused) await audio.play(); else audio.pause();
   };
 
-  const changeTrack = useCallback((delta: number) => {
-    const wasPlaying = !audioRef.current?.paused;
+  const changeTrack = useCallback((delta: number, resume = !audioRef.current?.paused) => {
+    resumeAfterTrackChange.current = resume;
     setIndex(i => (i + delta + lessons.length) % lessons.length);
     setCurrent(0);
-    window.setTimeout(() => { if (wasPlaying) audioRef.current?.play(); }, 0);
   }, []);
 
   const selectTrack = (nextIndex: number) => {
-    const wasPlaying = !audioRef.current?.paused;
+    resumeAfterTrackChange.current = !audioRef.current?.paused;
     setIndex(nextIndex);
     setCurrent(0);
-    window.setTimeout(() => { if (wasPlaying) audioRef.current?.play(); }, 0);
+  };
+
+  const resumeTrackIfNeeded = () => {
+    if (!resumeAfterTrackChange.current) return;
+    resumeAfterTrackChange.current = false;
+    void audioRef.current?.play().catch(() => setPlaying(false));
   };
 
   useEffect(() => {
@@ -131,7 +136,7 @@ export default function Home() {
 
   const ended = () => {
     if (repeat === "one") { audioRef.current?.play(); return; }
-    if (repeat === "all" || index < lessons.length - 1) changeTrack(1);
+    if (repeat === "all" || index < lessons.length - 1) changeTrack(1, true);
     else setPlaying(false);
   };
 
@@ -175,7 +180,7 @@ export default function Home() {
         {lessons.map((item, i) => <button key={item.title} onClick={() => selectTrack(i)} className={i === index ? "activeLesson" : ""}><span className="lessonNumber">{i === index && playing ? "♪" : i + 1}</span><span className="lessonMeta"><b>{item.title}</b><small>{item.subtitle}</small></span><span>{fmt(item.length)}</span></button>)}
       </section>
 
-      <audio ref={audioRef} src={lesson.src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={e => setCurrent(e.currentTarget.currentTime)} onLoadedMetadata={e => { setDuration(e.currentTarget.duration); e.currentTarget.playbackRate = speed; }} onEnded={ended} />
+      <audio ref={audioRef} src={lesson.src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onCanPlay={resumeTrackIfNeeded} onTimeUpdate={e => setCurrent(e.currentTarget.currentTime)} onLoadedMetadata={e => { setDuration(e.currentTarget.duration); e.currentTarget.playbackRate = speed; }} onEnded={ended} />
       <audio ref={musicRef} src="/audio/drifting-asleep.mp3" preload="metadata" loop />
     </main>
   );
