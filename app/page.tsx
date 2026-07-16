@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const lessons = [
-  { title: "A Quiet Walk Through London", subtitle: "Evening story · RP English", length: "03:08", src: "/audio/quiet-london.mp3" },
-  { title: "The Art of a Proper Afternoon Tea", subtitle: "Culture · Posh British English", length: "02:42", src: "/audio/afternoon-tea.mp3" },
-  { title: "Rain at the Country House", subtitle: "Sleep story · Gentle RP English", length: "03:24", src: "/audio/country-rain.mp3" },
+  { title: "A Quiet Walk Through London", subtitle: "Evening story · RP English", length: 46, src: "/audio/quiet-london.mp3" },
+  { title: "The Art of a Proper Afternoon Tea", subtitle: "Culture · Posh British English", length: 42, src: "/audio/afternoon-tea.mp3" },
+  { title: "Rain at the Country House", subtitle: "Sleep story · Gentle RP English", length: 44, src: "/audio/country-rain.mp3" },
 ];
 
 const sleepOptions = [60, 120, 180];
@@ -37,14 +37,16 @@ export default function Home() {
 
   useEffect(() => {
     const saved = localStorage.getItem("dreamlingo-state");
-    if (saved) {
+    if (!saved) return;
+    const frame = requestAnimationFrame(() => {
       try {
-        const state = JSON.parse(saved);
+        const state = JSON.parse(saved) as { index?: number; speed?: number; repeat?: RepeatMode };
         setIndex(Math.min(state.index ?? 0, lessons.length - 1));
         setSpeed([0.8, 1, 1.2].includes(state.speed) ? state.speed : 0.8);
-        setRepeat(state.repeat ?? "all");
+        setRepeat(["all", "one", "off"].includes(state.repeat ?? "") ? state.repeat! : "all");
       } catch { /* ignore damaged local state */ }
-    }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -54,6 +56,32 @@ export default function Home() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed]);
+
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const tick = setInterval(() => setRemaining(v => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(tick);
+  }, [remaining]);
+
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) await audio.play(); else audio.pause();
+  };
+
+  const changeTrack = useCallback((delta: number) => {
+    const wasPlaying = !audioRef.current?.paused;
+    setIndex(i => (i + delta + lessons.length) % lessons.length);
+    setCurrent(0);
+    window.setTimeout(() => { if (wasPlaying) audioRef.current?.play(); }, 0);
+  }, []);
+
+  const selectTrack = (nextIndex: number) => {
+    const wasPlaying = !audioRef.current?.paused;
+    setIndex(nextIndex);
+    setCurrent(0);
+    window.setTimeout(() => { if (wasPlaying) audioRef.current?.play(); }, 0);
+  };
 
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
@@ -66,27 +94,7 @@ export default function Home() {
     navigator.mediaSession.setActionHandler("pause", () => audioRef.current?.pause());
     navigator.mediaSession.setActionHandler("previoustrack", () => changeTrack(-1));
     navigator.mediaSession.setActionHandler("nexttrack", () => changeTrack(1));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
-
-  useEffect(() => {
-    if (!remaining) return;
-    const tick = setInterval(() => setRemaining(v => Math.max(0, v - 1)), 1000);
-    return () => clearInterval(tick);
-  }, [remaining > 0]);
-
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) await audio.play(); else audio.pause();
-  };
-
-  const changeTrack = (delta: number) => {
-    const wasPlaying = !audioRef.current?.paused;
-    setIndex(i => (i + delta + lessons.length) % lessons.length);
-    setCurrent(0);
-    window.setTimeout(() => { if (wasPlaying) audioRef.current?.play(); }, 0);
-  };
+  }, [changeTrack, lesson.title]);
 
   const seek = (amount: number) => {
     if (audioRef.current) audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + amount));
@@ -104,6 +112,7 @@ export default function Home() {
       audioRef.current?.pause();
       musicRef.current?.pause();
       setMusicOn(false);
+      setRemaining(0);
     }, next * 60 * 1000);
   };
 
@@ -142,7 +151,7 @@ export default function Home() {
 
         <div className="timeline">
           <input aria-label="播放进度" type="range" min="0" max={duration || 1} step="0.1" value={current} onChange={e => { if (audioRef.current) audioRef.current.currentTime = Number(e.target.value); }} style={{ "--progress": `${duration ? (current / duration) * 100 : 0}%` } as React.CSSProperties} />
-          <div><span>{fmt(current)}</span><span>{duration ? fmt(duration) : lesson.length}</span></div>
+          <div><span>{fmt(current)}</span><span>{fmt(duration || lesson.length)}</span></div>
         </div>
 
         <div className="transport">
@@ -163,7 +172,7 @@ export default function Home() {
 
       <section className="queue">
         <div className="queueHead"><div><p className="eyebrow">TONIGHT&apos;S JOURNEY</p><h3>睡前英语</h3></div><span>{lessons.length} lessons</span></div>
-        {lessons.map((item, i) => <button key={item.title} onClick={() => setIndex(i)} className={i === index ? "activeLesson" : ""}><span className="lessonNumber">{i === index && playing ? "♪" : i + 1}</span><span className="lessonMeta"><b>{item.title}</b><small>{item.subtitle}</small></span><span>{item.length}</span></button>)}
+        {lessons.map((item, i) => <button key={item.title} onClick={() => selectTrack(i)} className={i === index ? "activeLesson" : ""}><span className="lessonNumber">{i === index && playing ? "♪" : i + 1}</span><span className="lessonMeta"><b>{item.title}</b><small>{item.subtitle}</small></span><span>{fmt(item.length)}</span></button>)}
       </section>
 
       <audio ref={audioRef} src={lesson.src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={e => setCurrent(e.currentTarget.currentTime)} onLoadedMetadata={e => { setDuration(e.currentTarget.duration); e.currentTarget.playbackRate = speed; }} onEnded={ended} />
