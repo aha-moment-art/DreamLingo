@@ -20,6 +20,7 @@ const fmt = (seconds: number) => {
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -29,6 +30,7 @@ export default function Home() {
   const [repeat, setRepeat] = useState<RepeatMode>("all");
   const [sleep, setSleep] = useState(60);
   const [remaining, setRemaining] = useState(0);
+  const [musicOn, setMusicOn] = useState(false);
   const lesson = lessons[index];
 
   const repeatLabel = useMemo(() => repeat === "all" ? "全部循环" : repeat === "one" ? "单曲循环" : "不循环", [repeat]);
@@ -98,7 +100,24 @@ export default function Home() {
     setSleep(next);
     if (sleepTimer.current) clearTimeout(sleepTimer.current);
     setRemaining(next * 60);
-    if (next) sleepTimer.current = setTimeout(() => audioRef.current?.pause(), next * 60 * 1000);
+    if (next) sleepTimer.current = setTimeout(() => {
+      audioRef.current?.pause();
+      musicRef.current?.pause();
+      setMusicOn(false);
+    }, next * 60 * 1000);
+  };
+
+  const toggleMusic = async () => {
+    const music = musicRef.current;
+    if (!music) return;
+    if (music.paused) {
+      music.volume = 0.1;
+      await music.play();
+      setMusicOn(true);
+    } else {
+      music.pause();
+      setMusicOn(false);
+    }
   };
 
   const ended = () => {
@@ -139,6 +158,7 @@ export default function Home() {
         <button onClick={cycleRepeat}><span className="toolIcon">↻</span><b>{repeatLabel}</b><small>点击切换</small></button>
         <button onClick={startSleepTimer}><span className="toolIcon">☾</span><b>{sleep / 60} 小时</b><small>{remaining ? `剩余 ${fmt(remaining)}` : "点击启动"}</small></button>
         <button onClick={() => setSpeed(v => v === 1.25 ? 0.75 : Math.round((v + 0.25) * 100) / 100)}><span className="speedIcon">{speed}×</span><b>播放速度</b><small>舒缓语速</small></button>
+        <button onClick={toggleMusic}><span className="toolIcon">♫</span><b>背景音乐</b><small>{musicOn ? "Drifting Asleep · 开" : "点击开启"}</small></button>
       </section>
 
       <section className="queue">
@@ -147,6 +167,7 @@ export default function Home() {
       </section>
 
       <audio ref={audioRef} src={lesson.src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={e => setCurrent(e.currentTarget.currentTime)} onLoadedMetadata={e => { setDuration(e.currentTarget.duration); e.currentTarget.playbackRate = speed; }} onEnded={ended} />
+      <audio ref={musicRef} src="/audio/drifting-asleep.mp3" preload="metadata" loop />
     </main>
   );
 }
