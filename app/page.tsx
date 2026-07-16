@@ -26,7 +26,7 @@ export default function Home() {
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [speed, setSpeed] = useState(0.85);
+  const [speed, setSpeed] = useState(0.8);
   const [repeat, setRepeat] = useState<RepeatMode>("all");
   const [sleep, setSleep] = useState(60);
   const [remaining, setRemaining] = useState(0);
@@ -41,7 +41,7 @@ export default function Home() {
       try {
         const state = JSON.parse(saved);
         setIndex(Math.min(state.index ?? 0, lessons.length - 1));
-        setSpeed(state.speed ?? 0.85);
+        setSpeed([0.8, 1, 1.2].includes(state.speed) ? state.speed : 0.8);
         setRepeat(state.repeat ?? "all");
       } catch { /* ignore damaged local state */ }
     }
@@ -157,7 +157,7 @@ export default function Home() {
       <section className="tools" aria-label="播放设置">
         <button onClick={cycleRepeat}><span className="toolIcon">↻</span><b>{repeatLabel}</b><small>点击切换</small></button>
         <button onClick={startSleepTimer}><span className="toolIcon">☾</span><b>{sleep / 60} 小时</b><small>{remaining ? `剩余 ${fmt(remaining)}` : "点击启动"}</small></button>
-        <button onClick={() => setSpeed(v => v === 1.25 ? 0.75 : Math.round((v + 0.25) * 100) / 100)}><span className="speedIcon">{speed}×</span><b>播放速度</b><small>舒缓语速</small></button>
+        <button onClick={() => setSpeed(v => v === 0.8 ? 1 : v === 1 ? 1.2 : 0.8)}><span className="speedIcon">{speed}×</span><b>播放速度</b><small>0.8 · 1 · 1.2</small></button>
         <button onClick={toggleMusic}><span className="toolIcon">♫</span><b>背景音乐</b><small>{musicOn ? "Drifting Asleep · 开" : "点击开启"}</small></button>
       </section>
 
