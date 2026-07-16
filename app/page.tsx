@@ -6,6 +6,9 @@ const lessons = [
   { title: "A Quiet Walk Through London", subtitle: "Evening story · RP English", length: 46, src: "/audio/quiet-london.mp3" },
   { title: "The Art of a Proper Afternoon Tea", subtitle: "Culture · Posh British English", length: 42, src: "/audio/afternoon-tea.mp3" },
   { title: "Rain at the Country House", subtitle: "Sleep story · Gentle RP English", length: 44, src: "/audio/country-rain.mp3" },
+  { title: "Jabberwocky", subtitle: "真人朗读 · British English · Vanderdecken", length: 67, src: "/audio/jabberwocky-uk.mp3" },
+  { title: "A Short Introduction to BBC Radio 1", subtitle: "真人朗读 · British English · m4th5", length: 58, src: "/audio/bbc-radio-1.mp3" },
+  { title: "The Story of Coleslaw", subtitle: "真人朗读 · British English · Puffin", length: 188, src: "/audio/coleslaw.mp3" },
 ];
 
 const sleepOptions = [60, 120, 180];
@@ -178,6 +181,7 @@ export default function Home() {
       <section className="queue">
         <div className="queueHead"><div><p className="eyebrow">TONIGHT&apos;S JOURNEY</p><h3>睡前英语</h3></div><span>{lessons.length} lessons</span></div>
         {lessons.map((item, i) => <button key={item.title} onClick={() => selectTrack(i)} className={i === index ? "activeLesson" : ""}><span className="lessonNumber">{i === index && playing ? "♪" : i + 1}</span><span className="lessonMeta"><b>{item.title}</b><small>{item.subtitle}</small></span><span>{fmt(item.length)}</span></button>)}
+        <p className="audioCredits">真人音频来源：<a href="https://commons.wikimedia.org/wiki/File:Jabberwocky-UK.ogg" target="_blank" rel="noreferrer">Jabberwocky（CC0）</a>、<a href="https://commons.wikimedia.org/wiki/File:BBC_Radio_1_wiki.ogg" target="_blank" rel="noreferrer">BBC Radio 1（CC BY-SA 3.0）</a>、<a href="https://commons.wikimedia.org/wiki/File:Coleslaw.ogg" target="_blank" rel="noreferrer">Coleslaw（CC BY-SA 3.0）</a>。</p>
       </section>
 
       <audio ref={audioRef} src={lesson.src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onCanPlay={resumeTrackIfNeeded} onTimeUpdate={e => setCurrent(e.currentTarget.currentTime)} onLoadedMetadata={e => { setDuration(e.currentTarget.duration); e.currentTarget.playbackRate = speed; }} onEnded={ended} />

@@ -15,7 +15,7 @@ test("public player exposes the requested controls", async () => {
 });
 
 test("all published audio assets exist and are non-empty", async () => {
-  const files = ["quiet-london.mp3", "afternoon-tea.mp3", "country-rain.mp3", "drifting-asleep.mp3"];
+  const files = ["quiet-london.mp3", "afternoon-tea.mp3", "country-rain.mp3", "drifting-asleep.mp3", "jabberwocky-uk.mp3", "bbc-radio-1.mp3", "coleslaw.mp3"];
   for (const file of files) {
     const info = await stat(new URL(`public/audio/${file}`, root));
     assert.ok(info.size > 100_000, `${file} should contain audio data`);
@@ -31,5 +31,8 @@ test("server build renders the finished product", async () => {
   const html = await response.text();
   assert.match(html, /DreamLingo/);
   assert.match(html, /背景音乐/);
+  assert.match(html, /Jabberwocky/);
+  assert.match(html, /BBC Radio 1/);
+  assert.match(html, /Coleslaw/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
