@@ -8,7 +8,7 @@ const lessons = [
   { title: "Rain at the Country House", subtitle: "Sleep story · Gentle RP English", length: "03:24", src: "/audio/country-rain.mp3" },
 ];
 
-const sleepOptions = [0, 15, 30, 45, 60];
+const sleepOptions = [60, 120, 180];
 type RepeatMode = "all" | "one" | "off";
 
 const fmt = (seconds: number) => {
@@ -27,7 +27,7 @@ export default function Home() {
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(0.85);
   const [repeat, setRepeat] = useState<RepeatMode>("all");
-  const [sleep, setSleep] = useState(45);
+  const [sleep, setSleep] = useState(60);
   const [remaining, setRemaining] = useState(0);
   const lesson = lessons[index];
 
@@ -94,7 +94,7 @@ export default function Home() {
 
   const startSleepTimer = () => {
     const pos = sleepOptions.indexOf(sleep);
-    const next = sleepOptions[(pos + 1) % sleepOptions.length];
+    const next = remaining ? sleepOptions[(pos + 1) % sleepOptions.length] : sleep;
     setSleep(next);
     if (sleepTimer.current) clearTimeout(sleepTimer.current);
     setRemaining(next * 60);
@@ -137,7 +137,7 @@ export default function Home() {
 
       <section className="tools" aria-label="播放设置">
         <button onClick={cycleRepeat}><span className="toolIcon">↻</span><b>{repeatLabel}</b><small>点击切换</small></button>
-        <button onClick={startSleepTimer}><span className="toolIcon">☾</span><b>{sleep ? `${sleep} 分钟` : "定时关闭"}</b><small>{remaining ? `剩余 ${fmt(remaining)}` : "点击设置"}</small></button>
+        <button onClick={startSleepTimer}><span className="toolIcon">☾</span><b>{sleep / 60} 小时</b><small>{remaining ? `剩余 ${fmt(remaining)}` : "点击启动"}</small></button>
         <button onClick={() => setSpeed(v => v === 1.25 ? 0.75 : Math.round((v + 0.25) * 100) / 100)}><span className="speedIcon">{speed}×</span><b>播放速度</b><small>舒缓语速</small></button>
       </section>
 
